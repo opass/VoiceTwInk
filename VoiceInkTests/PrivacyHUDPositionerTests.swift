@@ -15,8 +15,9 @@ import AppKit
             screenFrame: testScreenFrame
         )
 
-        let miniRecorderTopY = testScreenFrame.minY + 24 + 120  // bottom padding + MiniRecorder height
-        #expect(frame.minY >= miniRecorderTopY, "HUD bottom must sit at or above MiniRecorder top edge")
+        // Implementation: yPosition = screenFrame.minY + 24 (bottom pad) + 120 (recorder height) + 8 (gap)
+        let expectedY = testScreenFrame.minY + 24 + 120 + 8
+        #expect(frame.minY == expectedY, "HUD bottom must sit exactly the padding gap above MiniRecorder top edge")
         #expect(frame.midX == testScreenFrame.midX, "HUD must be horizontally centered")
         #expect(frame.size == hudSize)
     }
@@ -29,13 +30,14 @@ import AppKit
             screenFrame: testScreenFrame
         )
 
-        // Notch sits at the top; HUD must be below the notch's bottom edge
-        #expect(frame.maxY < testScreenFrame.maxY, "HUD must be entirely below screen top")
+        // Implementation: yPosition = screenFrame.maxY - 36 (notch height) - 8 (gap) - hudSize.height
+        let expectedY = testScreenFrame.maxY - 36 - 8 - hudSize.height
+        #expect(frame.minY == expectedY, "HUD top must sit exactly the padding gap below the notch's bottom edge")
         #expect(frame.midX == testScreenFrame.midX, "HUD must be horizontally centered under notch")
         #expect(frame.size == hudSize)
     }
 
-    @Test("Fallback when given zero screen — returns centered default")
+    @Test("Fallback when given zero screen — returns frame with correct size, no crash")
     func zeroScreenFallback() {
         let zero = NSRect.zero
         let frame = PrivacyHUDPositioner.calculateFrame(

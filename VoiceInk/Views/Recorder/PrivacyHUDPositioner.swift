@@ -1,10 +1,13 @@
 import AppKit
 import Foundation
+import OSLog
 
 /// Computes the NSRect for the PrivacyHUDPanel based on which recorder mode is active.
 /// HUD sits adjacent to the recorder so it visually belongs to the recording session
 /// without modifying MiniRecorderView / NotchRecorderView themselves.
 enum PrivacyHUDPositioner {
+    private static let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "PrivacyHUDPositioner")
+
     /// Active recorder mode — read from the existing "RecorderType" UserDefaults key.
     /// Values written by RecorderUIManager: "mini" (default) or "notch".
     enum Mode {
@@ -52,7 +55,18 @@ enum PrivacyHUDPositioner {
     static func calculateFrame(hudSize: NSSize) -> NSRect {
         let screenFrame = NSScreen.main?.visibleFrame ?? .zero
         let recorderTypeRaw = UserDefaults.standard.string(forKey: "RecorderType") ?? "mini"
-        let mode: Mode = (recorderTypeRaw == "notch") ? .notch : .miniRecorder
+        let mode: Mode
+        switch recorderTypeRaw {
+        case "notch":
+            mode = .notch
+        case "mini":
+            mode = .miniRecorder
+        default:
+            // Unknown RecorderType value — fall back to mini positioning but surface the
+            // anomaly so a future upstream mode change doesn't go unnoticed.
+            Self.logger.warning("Unknown RecorderType value '\(recorderTypeRaw, privacy: .public)'; falling back to mini positioning.")
+            mode = .miniRecorder
+        }
         return calculateFrame(mode: mode, hudSize: hudSize, screenFrame: screenFrame)
     }
 }
