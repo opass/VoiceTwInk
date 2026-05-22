@@ -493,6 +493,10 @@ class AIEnhancementService: ObservableObject {
             // Splitting into structured (windowTitle, appName, extractedText) is a
             // follow-up; for now, preserve the raw string in extractedText so the
             // HUD has something to display.
+            // NOTE: This reads ScreenCaptureService.lastCapturedText, which captureScreenContext()
+            // writes as a side effect. If captureAndExtractText() ever stops storing into
+            // lastCapturedText, screenField would silently stay .pending — keep this coupling
+            // in mind when refactoring ScreenCaptureService.
             guard let raw = screenCaptureService.lastCapturedText, !raw.isEmpty else { return .pending }
             return .present(ScreenContextValue(windowTitle: "", appName: "", extractedText: raw))
         }()
@@ -504,6 +508,10 @@ class AIEnhancementService: ObservableObject {
         }()
 
         let systemField: ContextField<SystemContextValue> = {
+            // Intentional asymmetry: system context (time / timezone / locale) has no user
+            // toggle. It's low-sensitivity metadata always sent when capture has run; if a
+            // future use case needs an opt-out, add a useSystemContext toggle here and gate
+            // with the same .disabled pattern as the other fields.
             guard let sys = lastCapturedSystemContext else { return .empty }
             return .present(sys)
         }()
