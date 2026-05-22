@@ -91,6 +91,7 @@ class AIEnhancementService: ObservableObject {
     
     @Published var lastCapturedClipboard: String?
     @Published var lastCapturedSelectedText: String?
+    @Published var lastCapturedVocabulary: String?
 
     init(aiService: AIService = AIService(), modelContext: ModelContext) {
         self.aiService = aiService
@@ -438,9 +439,15 @@ class AIEnhancementService: ObservableObject {
         lastCapturedSelectedText = await SelectedTextService.fetchSelectedText()
     }
 
+    func captureVocabularyContext() {
+        let vocab = customVocabularyService.getCustomVocabulary(from: modelContext)
+        lastCapturedVocabulary = vocab.isEmpty ? nil : vocab
+    }
+
     func clearCapturedContexts() {
         lastCapturedClipboard = nil
         lastCapturedSelectedText = nil
+        lastCapturedVocabulary = nil
         screenCaptureService.lastCapturedText = nil
     }
 
