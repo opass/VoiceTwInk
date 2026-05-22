@@ -1,7 +1,7 @@
 import Foundation
 
 /// The single snapshot of everything about to be sent to the LLM at this moment.
-struct PrivacyPayload: Equatable {
+struct PrivacyPayload: Equatable, Sendable {
     let timestamp: Date
     let transcript: TranscriptState
     let selectedText: ContextField<String>
@@ -12,13 +12,13 @@ struct PrivacyPayload: Equatable {
     let destination: PrivacyDestination
 }
 
-enum TranscriptState: Equatable {
+enum TranscriptState: Equatable, Sendable {
     case recording
     case finished(String)
 }
 
 /// Five-state semantics for any single field that may or may not be in the outgoing payload.
-enum ContextField<T: Equatable>: Equatable {
+enum ContextField<T: Equatable & Sendable>: Equatable, Sendable {
     /// Global toggle is off, or permission is denied.
     case disabled
     /// Toggle on but content is empty (no selection, empty clipboard, empty vocab).
@@ -31,20 +31,20 @@ enum ContextField<T: Equatable>: Equatable {
     case present(T)
 }
 
-struct ScreenContextValue: Equatable {
+struct ScreenContextValue: Equatable, Sendable {
     let windowTitle: String
     let appName: String
     let extractedText: String
 }
 
-struct SystemContextValue: Equatable {
+struct SystemContextValue: Equatable, Sendable {
     let timestamp: Date
     let timezone: String
     let dayOfWeek: String
     let locale: String
 }
 
-enum PrivacyDestination: Equatable {
+enum PrivacyDestination: Equatable, Sendable {
     case local(providerLabel: String)
     case cloud(providerLabel: String)
 

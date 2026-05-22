@@ -39,6 +39,15 @@ import Foundation
         #expect(dest == .local(providerLabel: "Custom"))
     }
 
+    @Test("IPv6 loopback [::1] is classified local")
+    func ipv6LocalhostIsLocal() {
+        let dest = PrivacyDestination.detect(
+            providerLabel: "Ollama",
+            baseURL: URL(string: "http://[::1]:11434")!
+        )
+        #expect(dest == .local(providerLabel: "Ollama"))
+    }
+
     @Test("Custom remote URL with localhost suffix is still cloud")
     func cloudHostWithLocalhostInName() {
         let dest = PrivacyDestination.detect(
