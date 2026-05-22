@@ -95,7 +95,8 @@ class CloudTranscriptionService: TranscriptionService {
 
     private func selectedLanguage() -> String? {
         let lang = UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "auto"
-        return (lang == "auto" || lang.isEmpty) ? nil : lang
+        guard lang != "auto", !lang.isEmpty else { return nil }
+        return LanguageDictionary.whisperLanguageCode(for: lang)
     }
 
     private func transcriptionPrompt() -> String? {

@@ -321,3 +321,4 @@ The fork is the resolved conclusion of this evaluation. Don't re-litigate.
 Update this section as decisions get made. Useful when reviewing why something diverges from upstream.
 
 - **2026-05-22**: Fork created. Built initially from upstream HEAD. First-run config applied per recommendations above.
+- **2026-05-22**: OPA-108 — 新增 "Chinese (Taiwan)" 語言選項。內部用 BCP-47 `zh-TW`、送 Whisper API 前透過 `LanguageDictionary.whisperLanguageCode(for:)` helper 翻成 `zh`（Whisper 不接受 region tag）。對應 seed prompt 在 `WhisperPrompt.languagePrompts["zh-TW"]`（v3 台灣繁中自然句）。改動：`LanguageDictionary.swift`、`CloudTranscriptionService.swift:selectedLanguage()`、`Transcription/Whisper/LibWhisper.swift`、`Transcription/Whisper/WhisperPrompt.swift`。既有「Chinese」(zh) 選項保留不動（仍用上游 default 簡中 hello-句 seed prompt）。Spike 記錄見 Linear OPA-107，scoping 決策見 OPA-108 comments。

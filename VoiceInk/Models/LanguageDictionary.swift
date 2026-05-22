@@ -82,7 +82,7 @@ enum LanguageDictionary {
         "my", "ne", "nl", "nn", "no", "oc", "pa", "pl", "ps", "pt",
         "ro", "ru", "sa", "sd", "si", "sk", "sl", "sn", "so", "sq",
         "sr", "su", "sv", "sw", "ta", "te", "tg", "th", "tk", "tl",
-        "tr", "tt", "uk", "ur", "uz", "vi", "yi", "yo", "yue", "zh"
+        "tr", "tt", "uk", "ur", "uz", "vi", "yi", "yo", "yue", "zh", "zh-TW"
     ]
 
     static func forProvider(isMultilingual: Bool, provider: ModelProvider = .whisper) -> [String: String] {
@@ -123,6 +123,13 @@ enum LanguageDictionary {
 
     private static func languages(matching codes: Set<String>) -> [String: String] {
         all.filter { codes.contains($0.key) }
+    }
+
+    // Whisper's API accepts ISO codes (e.g. "zh") and doesn't distinguish script/region.
+    // VoiceTwInk uses BCP-47 internally (e.g. "zh-TW") to carry per-region prompt presets,
+    // so collapse to the bare code when handing off to Whisper.
+    static func whisperLanguageCode(for code: String) -> String {
+        code == "zh-TW" ? "zh" : code
     }
 
     // Apple Native Speech languages in BCP-47 format.
@@ -274,6 +281,7 @@ enum LanguageDictionary {
         "yo": "Yoruba",
         "yue": "Cantonese",
         "zh": "Chinese",
+        "zh-TW": "Chinese (Taiwan)",
         "zu": "Zulu"
     ]
 }

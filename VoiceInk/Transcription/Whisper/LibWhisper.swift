@@ -37,7 +37,8 @@ actor WhisperContext {
         // Read language directly from UserDefaults
         let selectedLanguage = UserDefaults.standard.string(forKey: "SelectedLanguage") ?? "auto"
         if selectedLanguage != "auto" {
-            languageCString = Array(selectedLanguage.utf8CString)
+            let whisperCode = LanguageDictionary.whisperLanguageCode(for: selectedLanguage)
+            languageCString = Array(whisperCode.utf8CString)
             params.language = languageCString?.withUnsafeBufferPointer { ptr in
                 ptr.baseAddress
             }
