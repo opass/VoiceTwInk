@@ -218,7 +218,11 @@ class VoiceInkEngine: NSObject, ObservableObject {
 
                                 if let enhancementService = self.enhancementService {
                                     enhancementService.captureClipboardContext()
+                                    await enhancementService.captureSelectedTextContext()
+                                    enhancementService.captureVocabularyContext()
+                                    enhancementService.captureSystemContext()
                                     await enhancementService.captureScreenContext()
+                                    enhancementService.assemblePrivacyPayload()
                                 }
                             }
 
@@ -325,6 +329,8 @@ class VoiceInkEngine: NSObject, ObservableObject {
         if shouldFinishSessionImmediately {
             await finishRecorderSession()
         }
+
+        self.enhancementService?.clearPrivacyPayload()
     }
 
     func resetRecordingSession() async {
@@ -432,7 +438,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
     }
 
     private func finishRecorderSession() async {
-        enhancementService?.clearCapturedContexts()
+        enhancementService?.clearPrivacyPayload()
         await restorePowerModeIfNeeded()
     }
 
