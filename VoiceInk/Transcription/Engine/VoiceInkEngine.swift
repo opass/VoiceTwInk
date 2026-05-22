@@ -31,6 +31,10 @@ class VoiceInkEngine: NSObject, ObservableObject {
 
     let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "VoiceInkEngine")
 
+    private lazy var escapeCancelHandler: EscapeCancelHandler = EscapeCancelHandler { [weak self] in
+        await self?.cancelRecording()
+    }
+
     init(
         modelContext: ModelContext,
         whisperModelManager: WhisperModelManager,
@@ -169,6 +173,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
 
                             self.recordingState = .recording
                             self.logger.notice("toggleRecord: recording started successfully, state=recording")
+                            self.escapeCancelHandler.register()
 
                             await ActiveWindowService.shared.applyConfiguration(powerModeId: powerModeId)
 
@@ -306,6 +311,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
     // MARK: - Cancellation
 
     func cancelRecording() async {
+        self.escapeCancelHandler.unregister()
         logger.notice("cancelRecording called – state=\(String(describing: self.recordingState), privacy: .public)")
 
         let shouldFinishSessionImmediately: Bool
@@ -440,6 +446,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
     }
 
     private func finishRecorderSession() async {
+        self.escapeCancelHandler.unregister()
         enhancementService?.clearPrivacyPayload()
         await restorePowerModeIfNeeded()
     }
