@@ -37,6 +37,13 @@ class AIEnhancementService: ObservableObject {
         }
     }
 
+    @Published var useSelectedTextContext: Bool {
+        didSet {
+            UserDefaults.standard.set(useSelectedTextContext, forKey: "useSelectedTextContext")
+            NotificationCenter.default.post(name: .AppSettingsDidChange, object: nil)
+        }
+    }
+
     @Published var customPrompts: [CustomPrompt] {
         didSet {
             if let encoded = try? JSONEncoder().encode(customPrompts) {
@@ -86,6 +93,8 @@ class AIEnhancementService: ObservableObject {
         self.isEnhancementEnabled = UserDefaults.standard.bool(forKey: "isAIEnhancementEnabled")
         self.useClipboardContext = UserDefaults.standard.bool(forKey: "useClipboardContext")
         self.useScreenCaptureContext = UserDefaults.standard.bool(forKey: "useScreenCaptureContext")
+        // Default ON to match upstream behaviour (selected text was always sent if AX granted)
+        self.useSelectedTextContext = UserDefaults.standard.object(forKey: "useSelectedTextContext") as? Bool ?? true
         if let savedPromptsData = UserDefaults.standard.data(forKey: "customPrompts"),
            let decodedPrompts = try? JSONDecoder().decode([CustomPrompt].self, from: savedPromptsData) {
             self.customPrompts = decodedPrompts

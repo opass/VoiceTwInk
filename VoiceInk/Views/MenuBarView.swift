@@ -187,6 +187,19 @@ struct MenuBarView: View {
                         }
                     }
                 }
+
+                Button {
+                    enhancementService.useSelectedTextContext.toggle()
+                    menuRefreshTrigger.toggle()
+                } label: {
+                    HStack {
+                        Text("Selected Text Context")
+                        Spacer()
+                        if enhancementService.useSelectedTextContext {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
             }
             .id("additional-menu-\(menuRefreshTrigger)")
             
