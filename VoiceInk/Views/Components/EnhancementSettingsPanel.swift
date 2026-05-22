@@ -61,7 +61,7 @@ struct EnhancementSettingsPanel: View {
 
                     Toggle(isOn: $enhancementService.useSelectedTextContext) {
                         HStack(spacing: 4) {
-                            Text("Selected Text")
+                            Text("Selected Text Context")
                             InfoTip("Include the text currently selected in any app when enhancing. Requires Accessibility permission.")
                         }
                     }
