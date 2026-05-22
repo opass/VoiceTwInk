@@ -330,6 +330,8 @@ class VoiceInkEngine: NSObject, ObservableObject {
             await finishRecorderSession()
         }
 
+        // Idempotent; ensures cleanup even when finishRecorderSession was skipped
+        // (the .transcribing / .enhancing branch sets shouldFinishSessionImmediately = false)
         self.enhancementService?.clearPrivacyPayload()
     }
 
