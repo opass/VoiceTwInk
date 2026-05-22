@@ -90,6 +90,7 @@ class AIEnhancementService: ObservableObject {
     private let modelContext: ModelContext
     
     @Published var lastCapturedClipboard: String?
+    @Published var lastCapturedSelectedText: String?
 
     init(aiService: AIService = AIService(), modelContext: ModelContext) {
         self.aiService = aiService
@@ -428,9 +429,18 @@ class AIEnhancementService: ObservableObject {
     func captureClipboardContext() {
         lastCapturedClipboard = NSPasteboard.general.string(forType: .string)
     }
-    
+
+    func captureSelectedTextContext() async {
+        guard AXIsProcessTrusted() else {
+            lastCapturedSelectedText = nil
+            return
+        }
+        lastCapturedSelectedText = await SelectedTextService.fetchSelectedText()
+    }
+
     func clearCapturedContexts() {
         lastCapturedClipboard = nil
+        lastCapturedSelectedText = nil
         screenCaptureService.lastCapturedText = nil
     }
 
