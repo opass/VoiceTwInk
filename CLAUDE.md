@@ -68,15 +68,15 @@ These five settings address the actual data-egress paths confirmed by code audit
 | 4 | AI Enhancement | **OFF, or use Ollama** | Enhancement = transcript + selected-text + optional clipboard/screen-OCR shipped to chosen LLM |
 | 5 | Accessibility permission | **Grant only if you accept the selected-text leak** (see below) | No separate toggle isolates selected-text from other AX features when AI Enhancement is on |
 
-### Known privacy gap (not yet fixed in fork)
+### Closed privacy gaps (fork-specific, no longer present)
 
-**Selected text is silently included in every LLM call when AI Enhancement is on AND Accessibility is granted.** Code path: `VoiceInk/Services/AIEnhancement/AIEnhancementService.swift:147–155`. There is no user-facing toggle, no preview, no per-utterance confirmation. If a password or API key is selected in another window when you trigger transcription, that selection is shipped to your chosen LLM.
+**Selected text silent inclusion (closed by OPA-111)** — previously selected text was sent on every LLM call if Accessibility was granted, with no toggle / preview / confirmation. Now:
+- Capture happens at record-start (not send-time), so the locked snapshot is what gets sent
+- Privacy HUD displays the captured value before send (`docs/superpowers/specs/2026-05-22-privacy-hud-design.md`)
+- New global toggle `useSelectedTextContext` (Settings → AI Models → Enhancement panel) defaults ON for backwards compat
+- ESC during recording cancels everything (no LLM call, no transcribe, no paste)
 
-Workarounds until a fix lands:
-- Don't grant Accessibility (loses paste functionality)
-- Don't use AI Enhancement
-- Use Ollama for AI Enhancement (selected text stays local)
-- **Long-term fix**: see Customization Roadmap item #1 (Privacy preview HUD)
+**Custom vocabulary silent inclusion (closed by OPA-111)** — similar fix; new toggle `useCustomVocabularyContext`.
 
 ---
 
@@ -333,3 +333,4 @@ Update this section as decisions get made. Useful when reviewing why something d
 - **2026-05-22**: Fork created. Built initially from upstream HEAD. First-run config applied per recommendations above.
 - **2026-05-22**: OPA-108 — 新增 "Chinese (Taiwan)" 語言選項。內部用 BCP-47 `zh-TW`、送 Whisper API 前透過 `LanguageDictionary.whisperLanguageCode(for:)` helper 翻成 `zh`（Whisper 不接受 region tag）。對應 seed prompt 在 `WhisperPrompt.languagePrompts["zh-TW"]`（v3 台灣繁中自然句）。改動：`LanguageDictionary.swift`、`CloudTranscriptionService.swift:selectedLanguage()`、`Transcription/Whisper/LibWhisper.swift`、`Transcription/Whisper/WhisperPrompt.swift`。既有「Chinese」(zh) 選項保留不動（仍用上游 default 簡中 hello-句 seed prompt）。Spike 記錄見 Linear OPA-107，scoping 決策見 OPA-108 comments。
 - **2026-05-22**: Build 簽章從 ad-hoc 改為 hybrid「ad-hoc 整個包 + 對外層 .app 重簽 Apple Development cert」。動機：ad-hoc 每次 build 的 cdhash 都不同，macOS TCC 因此把每個 build 看成新 app、重新要求授權麥克風 / Accessibility。SPM 套件（mediaremote-adapter 等）的 auto-generated build target 對 Apple Development cert 不友善（會掉到舊 default "Mac Development" 找不到 cert），所以 build 階段仍是 ad-hoc；完成後 Makefile 對外層 `.app` 再跑一次 `codesign --force --sign "Apple Development:..."`（不用 `--deep`，frameworks 保留 ad-hoc 簽章）。TCC 只看外層 .app 的 designated requirement，這條 = 「Apple Development cert + 你的 team」是 rebuild 之間穩定的，因此權限不會掉。改動：`LocalBuild.xcconfig`（註解說明 hybrid 策略）、`Makefile`（從 gitignored `.local-team` 讀 team ID、build 後跑 codesign 重簽 wrapper、新增 `relaunch` target、`dev = local + relaunch`、deploy 路徑從 `~/Downloads` 改 `/Applications`（前提：上游商業 binary 已不在那邊；CLAUDE.md mission 本來就規定不裝），並自動清理 `~/Downloads/VoiceInk.app` 與 `~/Applications/VoiceInk.app` 兩處遷移殘留）、`.gitignore`（排除 `.local-team`）、`CLAUDE.md` 對應段落更新。一次性 setup 需在 Xcode 加 Apple ID + 寫 team ID 到 `.local-team`。仍是 $99/yr 不需付的免費路徑。
+- **2026-05-22 / 2026-05-23**: OPA-111 / OPA-112 / OPA-113 — Privacy HUD landed. Capture-at-record-start architecture: selected text + custom vocabulary moved from send-time fetch to record-start capture, alongside clipboard / screen / system context. New `PrivacyHUDPanel` floats adjacent to active recorder (MiniRecorder above / Notch below), shows every field about to be sent, ESC cancels mid-recording. System context (time / timezone / day-of-week / locale) bundled as `<SYSTEM_CONTEXT>` in system message — Assistant Mode can now answer "what time is it". Two new global toggles (`useSelectedTextContext`, `useCustomVocabularyContext`) close the previous silent-inclusion gap. `getSystemMessage()` reads captured properties first with on-demand fallback so HUD failures don't break enhance pipeline. Spec: `docs/superpowers/specs/2026-05-22-privacy-hud-design.md`. Plan: `docs/superpowers/plans/2026-05-22-privacy-hud.md`. 13 implementation commits on branch `feat/privacy-hud`.
