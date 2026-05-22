@@ -200,6 +200,19 @@ struct MenuBarView: View {
                         }
                     }
                 }
+
+                Button {
+                    enhancementService.useCustomVocabularyContext.toggle()
+                    menuRefreshTrigger.toggle()
+                } label: {
+                    HStack {
+                        Text("Custom Vocabulary Context")
+                        Spacer()
+                        if enhancementService.useCustomVocabularyContext {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
             }
             .id("additional-menu-\(menuRefreshTrigger)")
             

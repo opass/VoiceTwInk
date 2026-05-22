@@ -44,6 +44,13 @@ class AIEnhancementService: ObservableObject {
         }
     }
 
+    @Published var useCustomVocabularyContext: Bool {
+        didSet {
+            UserDefaults.standard.set(useCustomVocabularyContext, forKey: "useCustomVocabularyContext")
+            NotificationCenter.default.post(name: .AppSettingsDidChange, object: nil)
+        }
+    }
+
     @Published var customPrompts: [CustomPrompt] {
         didSet {
             if let encoded = try? JSONEncoder().encode(customPrompts) {
@@ -95,6 +102,8 @@ class AIEnhancementService: ObservableObject {
         self.useScreenCaptureContext = UserDefaults.standard.bool(forKey: "useScreenCaptureContext")
         // Default ON to match upstream behaviour (selected text was always sent if AX granted)
         self.useSelectedTextContext = UserDefaults.standard.object(forKey: "useSelectedTextContext") as? Bool ?? true
+        // Default ON to match upstream behaviour (vocabulary was always sent if non-empty)
+        self.useCustomVocabularyContext = UserDefaults.standard.object(forKey: "useCustomVocabularyContext") as? Bool ?? true
         if let savedPromptsData = UserDefaults.standard.data(forKey: "customPrompts"),
            let decodedPrompts = try? JSONDecoder().decode([CustomPrompt].self, from: savedPromptsData) {
             self.customPrompts = decodedPrompts
