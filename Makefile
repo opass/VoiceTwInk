@@ -4,13 +4,26 @@ WHISPER_CPP_DIR := $(DEPS_DIR)/whisper.cpp
 FRAMEWORK_PATH := $(WHISPER_CPP_DIR)/build-apple/whisper.xcframework
 LOCAL_DERIVED_DATA := $(CURDIR)/.local-build
 
-.PHONY: all clean whisper setup build local check healthcheck help dev run
+# Where the built .app gets deployed. /Applications is the standard macOS app
+# location (Spotlight / Launchpad index it, Dock-drag works naturally). On
+# personal Macs the user is in the admin group so /Applications is writable
+# without sudo; the fork explicitly does NOT keep an upstream commercial
+# `/Applications/VoiceInk.app` (CLAUDE.md mission) so there's no collision.
+INSTALL_DIR := /Applications
+
+# Apple Development team ID for the local-signed build. Read from .local-team
+# (gitignored) so personal identifiers don't end up in the public repo. Populate
+# once with the output of `security find-identity -v -p codesigning`.
+LOCAL_TEAM := $(shell cat .local-team 2>/dev/null | tr -d ' \r\n')
+
+.PHONY: all clean whisper setup build local check healthcheck help dev run relaunch
 
 # Default target
 all: check build
 
-# Development workflow
-dev: build run
+# Development workflow — build + relaunch the running app so changes pick up
+# without needing to manually quit + reopen.
+dev: local relaunch
 
 # Prerequisites
 check:
@@ -44,9 +57,27 @@ setup: whisper
 build: setup
 	xcodebuild -project VoiceInk.xcodeproj -scheme VoiceInk -configuration Debug CODE_SIGN_IDENTITY="" build
 
-# Build for local use without Apple Developer certificate
+# Build for local use. The build itself is ad-hoc signed (so SPM dependencies
+# happy), then we re-sign just the outer .app wrapper with the user's free
+# Apple Development (Personal Team) cert. TCC matches the wrapper's designated
+# requirement, which is stable across rebuilds → Microphone / Accessibility
+# permissions persist instead of re-prompting every build.
 local: check setup
-	@echo "Building VoiceInk for local use (no Apple Developer certificate required)..."
+	@if [ -z "$(LOCAL_TEAM)" ]; then \
+		echo "Error: .local-team is missing or empty."; \
+		echo "Find your team ID with:"; \
+		echo "  security find-identity -v -p codesigning | grep 'Apple Development'"; \
+		echo "Then write the 10-char ID to .local-team, e.g.:"; \
+		echo "  echo 'XXXXXXXXXX' > .local-team"; \
+		exit 1; \
+	fi
+	@IDENTITY_HASH=$$(security find-identity -v -p codesigning | grep "Apple Development" | grep "$(LOCAL_TEAM)" | head -1 | awk '{print $$2}'); \
+	if [ -z "$$IDENTITY_HASH" ]; then \
+		echo "Error: No 'Apple Development' cert found in keychain for team $(LOCAL_TEAM)."; \
+		echo "Open Xcode → Settings → Accounts, sign in, and let it create the cert."; \
+		exit 1; \
+	fi
+	@echo "Building VoiceInk (ad-hoc) for local use..."
 	@rm -rf "$(LOCAL_DERIVED_DATA)"
 	xcodebuild -project VoiceInk.xcodeproj -scheme VoiceInk -configuration Debug \
 		-derivedDataPath "$(LOCAL_DERIVED_DATA)" \
@@ -60,13 +91,29 @@ local: check setup
 		build
 	@APP_PATH="$(LOCAL_DERIVED_DATA)/Build/Products/Debug/VoiceInk.app" && \
 	if [ -d "$$APP_PATH" ]; then \
-		echo "Copying VoiceInk.app to ~/Downloads..."; \
-		rm -rf "$$HOME/Downloads/VoiceInk.app"; \
-		ditto "$$APP_PATH" "$$HOME/Downloads/VoiceInk.app"; \
-		xattr -cr "$$HOME/Downloads/VoiceInk.app"; \
+		mkdir -p "$(INSTALL_DIR)"; \
+		echo "Copying VoiceInk.app to $(INSTALL_DIR)..."; \
+		rm -rf "$(INSTALL_DIR)/VoiceInk.app"; \
+		ditto "$$APP_PATH" "$(INSTALL_DIR)/VoiceInk.app"; \
+		xattr -cr "$(INSTALL_DIR)/VoiceInk.app"; \
+		IDENTITY_HASH=$$(security find-identity -v -p codesigning | grep "Apple Development" | grep "$(LOCAL_TEAM)" | head -1 | awk '{print $$2}'); \
+		echo "Re-signing wrapper .app with Apple Development team $(LOCAL_TEAM)..."; \
+		codesign --force --sign "$$IDENTITY_HASH" \
+			--entitlements "$(CURDIR)/VoiceInk/VoiceInk.local.entitlements" \
+			--timestamp=none --generate-entitlement-der \
+			"$(INSTALL_DIR)/VoiceInk.app"; \
+		for stale in "$$HOME/Downloads/VoiceInk.app" "$$HOME/Applications/VoiceInk.app"; do \
+			if [ -d "$$stale" ] && [ "$$stale" != "$(INSTALL_DIR)/VoiceInk.app" ]; then \
+				echo "Removing stale $$stale from older deploy location..."; \
+				rm -rf "$$stale"; \
+			fi; \
+		done; \
 		echo ""; \
-		echo "Build complete! App saved to: ~/Downloads/VoiceInk.app"; \
-		echo "Run with: open ~/Downloads/VoiceInk.app"; \
+		echo "Signature:"; \
+		codesign -dvv "$(INSTALL_DIR)/VoiceInk.app" 2>&1 | grep -E "Authority|TeamIdentifier|Identifier|Signature" | head -6; \
+		echo ""; \
+		echo "Build complete! App saved to: $(INSTALL_DIR)/VoiceInk.app"; \
+		echo "Run with: open $(INSTALL_DIR)/VoiceInk.app"; \
 		echo ""; \
 		echo "Limitations of local builds:"; \
 		echo "  - No iCloud dictionary sync"; \
@@ -76,11 +123,22 @@ local: check setup
 		exit 1; \
 	fi
 
+# Quit any running instance and relaunch from $(INSTALL_DIR)/VoiceInk.app.
+# Use after `make local` to pick up freshly built code without losing
+# macOS Microphone / Accessibility permissions (stable signing means TCC
+# sees the new build as the same app).
+relaunch:
+	@echo "Restarting VoiceInk..."
+	@osascript -e 'quit app "VoiceInk"' 2>/dev/null || true
+	@sleep 1
+	@open "$(INSTALL_DIR)/VoiceInk.app"
+	@echo "Launched $(INSTALL_DIR)/VoiceInk.app"
+
 # Run application
 run:
-	@if [ -d "$$HOME/Downloads/VoiceInk.app" ]; then \
-		echo "Opening ~/Downloads/VoiceInk.app..."; \
-		open "$$HOME/Downloads/VoiceInk.app"; \
+	@if [ -d "$(INSTALL_DIR)/VoiceInk.app" ]; then \
+		echo "Opening $(INSTALL_DIR)/VoiceInk.app..."; \
+		open "$(INSTALL_DIR)/VoiceInk.app"; \
 	else \
 		echo "Looking for VoiceInk.app in DerivedData..."; \
 		APP_PATH=$$(find "$$HOME/Library/Developer/Xcode/DerivedData" -name "VoiceInk.app" -type d | head -1) && \
@@ -106,9 +164,10 @@ help:
 	@echo "  whisper            Clone and build whisper.cpp XCFramework"
 	@echo "  setup              Copy whisper XCFramework to VoiceInk project"
 	@echo "  build              Build the VoiceInk Xcode project"
-	@echo "  local              Build for local use (no Apple Developer certificate needed)"
+	@echo "  local              Build for local use (signed with your free Apple Development team — see .local-team)"
 	@echo "  run                Launch the built VoiceInk app"
-	@echo "  dev                Build and run the app (for development)"
+	@echo "  relaunch           Quit any running instance and relaunch from ~/Downloads/VoiceInk.app"
+	@echo "  dev                Build then relaunch (daily-driver workflow)"
 	@echo "  all                Run full build process (default)"
 	@echo "  clean              Remove build artifacts"
 	@echo "  help               Show this help message"

@@ -99,4 +99,9 @@ Icon
 .AppleDesktop
 Network Trash Folder
 Temporary Items
-.apdisk 
+.apdisk
+
+# VoiceTwInk local build
+# Personal Apple Development team ID — populate from:
+#   security find-identity -v -p codesigning | grep "Apple Development"
+.local-team 

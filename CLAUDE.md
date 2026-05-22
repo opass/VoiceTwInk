@@ -35,15 +35,25 @@ Owner intent: **use** voice input daily for writing and AI collaboration. NOT **
 ### Build from source (only sanctioned method)
 
 ```bash
-# Prerequisites: macOS 14.4+, Xcode (Mac App Store, free), git
+# One-time setup
+# 1. Install Xcode (Mac App Store, free) and open it once
+# 2. Xcode → Settings → Accounts → add your Apple ID (a free Apple ID is fine;
+#    Xcode auto-creates a "Personal Team" certificate)
+# 3. Find your team ID and save it to .local-team (gitignored):
+#    security find-identity -v -p codesigning | grep "Apple Development"
+#    echo 'YOUR_TEAM_ID' > .local-team
+
+# Regular workflow
 make check       # verify toolchain
-make local       # builds + ad-hoc-signs locally; whisper.cpp framework built fresh from upstream source
-open ~/Downloads/VoiceInk.app
+make local       # builds with your Personal Team cert; whisper.cpp framework built fresh from upstream source
+make dev         # builds and relaunches the app (preferred for daily-driver iteration)
+open /Applications/VoiceInk.app
 ```
 
-`make local` uses `LocalBuild.xcconfig` + the `LOCAL_BUILD` Swift compilation flag. Two non-obvious consequences:
+`make local` uses `LocalBuild.xcconfig` + the `LOCAL_BUILD` Swift compilation flag. Three non-obvious consequences:
 
-- **No Apple Developer cert required** ($99/yr account NOT needed — ad-hoc signing is enough)
+- **No paid Apple Developer account required** ($99/yr NOT needed). The build is signed with the free Apple ID "Personal Team" certificate Xcode generates automatically. This is stable across rebuilds, which means macOS keeps your Microphone / Accessibility grants instead of re-prompting after every `make local`. (Previously this fork used ad-hoc signing, which gave a fresh cdhash per build and forced TCC to re-prompt every time — now fixed.)
+- **`DEVELOPMENT_TEAM` is loaded from the gitignored `.local-team` file** so personal identifiers don't end up in the public repo. The Makefile errors with a clear message if the file is missing.
 - **License check is short-circuited.** `LicenseViewModel.swift:27` returns `.licensed` unconditionally under `LOCAL_BUILD`. The build will **never call `api.polar.sh`**, even on first launch. Mac serial number / hostname **never leaves the machine** via this app. This is the GPL-sanctioned free-forever path.
 
 ### First-run privacy configuration (do this before daily use)
@@ -242,7 +252,7 @@ Before proposing any change, ask:
 
 ### Build = test
 
-Every change must pass `make local && open ~/Downloads/VoiceInk.app && <manual smoke>`. Unit tests run via `xcodebuild test` (when applicable). No "I assume it works" without verification.
+Every change must pass `make local && open /Applications/VoiceInk.app && <manual smoke>`. Unit tests run via `xcodebuild test` (when applicable). No "I assume it works" without verification.
 
 ### Upstream divergence is a cost
 
@@ -322,3 +332,4 @@ Update this section as decisions get made. Useful when reviewing why something d
 
 - **2026-05-22**: Fork created. Built initially from upstream HEAD. First-run config applied per recommendations above.
 - **2026-05-22**: OPA-108 — 新增 "Chinese (Taiwan)" 語言選項。內部用 BCP-47 `zh-TW`、送 Whisper API 前透過 `LanguageDictionary.whisperLanguageCode(for:)` helper 翻成 `zh`（Whisper 不接受 region tag）。對應 seed prompt 在 `WhisperPrompt.languagePrompts["zh-TW"]`（v3 台灣繁中自然句）。改動：`LanguageDictionary.swift`、`CloudTranscriptionService.swift:selectedLanguage()`、`Transcription/Whisper/LibWhisper.swift`、`Transcription/Whisper/WhisperPrompt.swift`。既有「Chinese」(zh) 選項保留不動（仍用上游 default 簡中 hello-句 seed prompt）。Spike 記錄見 Linear OPA-107，scoping 決策見 OPA-108 comments。
+- **2026-05-22**: Build 簽章從 ad-hoc 改為 hybrid「ad-hoc 整個包 + 對外層 .app 重簽 Apple Development cert」。動機：ad-hoc 每次 build 的 cdhash 都不同，macOS TCC 因此把每個 build 看成新 app、重新要求授權麥克風 / Accessibility。SPM 套件（mediaremote-adapter 等）的 auto-generated build target 對 Apple Development cert 不友善（會掉到舊 default "Mac Development" 找不到 cert），所以 build 階段仍是 ad-hoc；完成後 Makefile 對外層 `.app` 再跑一次 `codesign --force --sign "Apple Development:..."`（不用 `--deep`，frameworks 保留 ad-hoc 簽章）。TCC 只看外層 .app 的 designated requirement，這條 = 「Apple Development cert + 你的 team」是 rebuild 之間穩定的，因此權限不會掉。改動：`LocalBuild.xcconfig`（註解說明 hybrid 策略）、`Makefile`（從 gitignored `.local-team` 讀 team ID、build 後跑 codesign 重簽 wrapper、新增 `relaunch` target、`dev = local + relaunch`、deploy 路徑從 `~/Downloads` 改 `/Applications`（前提：上游商業 binary 已不在那邊；CLAUDE.md mission 本來就規定不裝），並自動清理 `~/Downloads/VoiceInk.app` 與 `~/Applications/VoiceInk.app` 兩處遷移殘留）、`.gitignore`（排除 `.local-team`）、`CLAUDE.md` 對應段落更新。一次性 setup 需在 Xcode 加 Apple ID + 寫 team ID 到 `.local-team`。仍是 $99/yr 不需付的免費路徑。

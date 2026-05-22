@@ -1,8 +1,19 @@
 // LocalBuild.xcconfig
-// Build configuration for local/unsigned builds (no Apple Developer certificate required).
-// Used by `make local` — does NOT affect Debug or Release configurations.
+// Build configuration for `make local`. The build itself uses ad-hoc signing
+// (so SPM dependencies like mediaremote-adapter, which don't reliably pick
+// up an Apple Development identity from command-line settings, can still
+// compile). The Makefile then re-signs only the outer .app wrapper with the
+// user's free Apple Development (Personal Team) certificate, leaving the
+// internal frameworks' ad-hoc signatures untouched.
+//
+// Why re-sign the wrapper: ad-hoc signing produces a new cdhash per build,
+// which causes macOS TCC to treat each build as a brand-new app and re-prompt
+// for Microphone / Accessibility permissions. The .app's designated requirement
+// (what TCC matches against) only depends on the outer wrapper's signature,
+// so signing the wrapper with a stable Apple Development identity is enough
+// to make TCC happy across rebuilds; the inner frameworks staying ad-hoc is
+// invisible to TCC.
 
-// Ad-hoc signing (works without a developer account)
 CODE_SIGN_IDENTITY = -
 CODE_SIGN_STYLE = Manual
 DEVELOPMENT_TEAM =
