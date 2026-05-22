@@ -22,6 +22,7 @@ struct VoiceInkApp: App {
     @StateObject private var menuBarManager: MenuBarManager
     @StateObject private var aiService = AIService()
     @StateObject private var enhancementService: AIEnhancementService
+    @StateObject private var privacyHUDWindowManager: PrivacyHUDWindowManager
     @StateObject private var activeWindowService = ActiveWindowService.shared
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage("enableAnnouncements") private var enableAnnouncements = true
@@ -102,6 +103,9 @@ struct VoiceInkApp: App {
 
         let enhancementService = AIEnhancementService(aiService: aiService, modelContext: resolvedContainer.mainContext)
         _enhancementService = StateObject(wrappedValue: enhancementService)
+
+        let privacyHUDWindowManager = PrivacyHUDWindowManager(enhancementService: enhancementService)
+        _privacyHUDWindowManager = StateObject(wrappedValue: privacyHUDWindowManager)
 
         // 1. Create modelsDirectory URL
         let appSupportDirectory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
