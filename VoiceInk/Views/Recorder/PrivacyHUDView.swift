@@ -113,9 +113,13 @@ struct PrivacyHUDView: View {
         return String(s.prefix(max)) + "..."
     }
 
-    private func formatTime(_ d: Date) -> String {
+    private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
-        return f.string(from: d)
+        return f
+    }()
+
+    private func formatTime(_ d: Date) -> String {
+        Self.timeFormatter.string(from: d)
     }
 }
