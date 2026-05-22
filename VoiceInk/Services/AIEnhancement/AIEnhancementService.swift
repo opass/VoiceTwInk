@@ -94,6 +94,8 @@ class AIEnhancementService: ObservableObject {
     @Published var lastCapturedVocabulary: String?
     @Published var lastCapturedSystemContext: SystemContextValue?
 
+    @Published var currentPrivacyPayload: PrivacyPayload?
+
     init(aiService: AIService = AIService(), modelContext: ModelContext) {
         self.aiService = aiService
         self.modelContext = modelContext
@@ -464,6 +466,94 @@ class AIEnhancementService: ObservableObject {
         lastCapturedVocabulary = nil
         lastCapturedSystemContext = nil
         screenCaptureService.lastCapturedText = nil
+    }
+
+    /// Compose a PrivacyPayload from current captured state + toggle state + destination.
+    /// Called at record-start after all capture methods have fired and again whenever
+    /// async OCR completes (so the screenContext field transitions pending → present).
+    func assemblePrivacyPayload() {
+        let selectedField: ContextField<String> = {
+            guard useSelectedTextContext else { return .disabled }
+            guard AXIsProcessTrusted() else { return .disabled }
+            guard let text = lastCapturedSelectedText, !text.isEmpty else { return .empty }
+            return .present(text)
+        }()
+
+        let clipboardField: ContextField<String> = {
+            guard useClipboardContext else { return .disabled }
+            guard let text = lastCapturedClipboard, !text.isEmpty else { return .empty }
+            return .present(text)
+        }()
+
+        let screenField: ContextField<ScreenContextValue> = {
+            guard useScreenCaptureContext else { return .disabled }
+            guard CGPreflightScreenCaptureAccess() else { return .disabled }
+            // ScreenCaptureService.lastCapturedText stores a single string blob
+            // ("Active Window: ...\nApplication: ...\nWindow Content: ...\n<ocr text>").
+            // Splitting into structured (windowTitle, appName, extractedText) is a
+            // follow-up; for now, preserve the raw string in extractedText so the
+            // HUD has something to display.
+            guard let raw = screenCaptureService.lastCapturedText, !raw.isEmpty else { return .pending }
+            return .present(ScreenContextValue(windowTitle: "", appName: "", extractedText: raw))
+        }()
+
+        let vocabField: ContextField<String> = {
+            guard useCustomVocabularyContext else { return .disabled }
+            guard let v = lastCapturedVocabulary, !v.isEmpty else { return .empty }
+            return .present(v)
+        }()
+
+        let systemField: ContextField<SystemContextValue> = {
+            guard let sys = lastCapturedSystemContext else { return .empty }
+            return .present(sys)
+        }()
+
+        let destination = determinePrivacyDestination()
+
+        // Use SystemContextValue.timestamp as the payload timestamp so both
+        // fields refer to the same captured instant.
+        currentPrivacyPayload = PrivacyPayload(
+            timestamp: lastCapturedSystemContext?.timestamp ?? Date(),
+            transcript: .recording,
+            selectedText: selectedField,
+            clipboard: clipboardField,
+            screenContext: screenField,
+            customVocabulary: vocabField,
+            systemContext: systemField,
+            destination: destination
+        )
+    }
+
+    /// Classify the currently selected LLM provider as local or cloud for HUD display.
+    private func determinePrivacyDestination() -> PrivacyDestination {
+        let providerLabel = privacyProviderLabel()
+        let baseURL = privacyProviderBaseURL()
+        return PrivacyDestination.detect(providerLabel: providerLabel, baseURL: baseURL)
+    }
+
+    /// Friendly label for the current provider (used in the HUD footer).
+    /// AIProvider.rawValue is already the human-readable name (e.g., "Anthropic", "Ollama",
+    /// "Local CLI"), so no extra property is needed on AIService.
+    private func privacyProviderLabel() -> String {
+        return aiService.selectedProvider.rawValue
+    }
+
+    /// Base URL of the currently selected provider — used for local/cloud detection.
+    /// AIProvider.baseURL returns a String; convert to URL here. Local CLI has an empty
+    /// baseURL, which we treat as local by falling back to localhost.
+    private func privacyProviderBaseURL() -> URL {
+        let provider = aiService.selectedProvider
+        // localCLI has no network URL at all — treat as local
+        if provider == .localCLI {
+            return URL(string: "http://localhost")!
+        }
+        let rawURL = provider.baseURL
+        return URL(string: rawURL) ?? URL(string: "http://localhost")!
+    }
+
+    func clearPrivacyPayload() {
+        currentPrivacyPayload = nil
+        clearCapturedContexts()
     }
 
     func addPrompt(title: String, promptText: String, icon: PromptIcon = "doc.text.fill", description: String? = nil, triggerWords: [String] = [], useSystemInstructions: Bool = true) {
