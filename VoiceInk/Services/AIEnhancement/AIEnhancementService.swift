@@ -166,16 +166,20 @@ class AIEnhancementService: ObservableObject {
     }
 
     private func getSystemMessage(for mode: EnhancementPrompt) async -> String {
-        let selectedTextContext: String
-        if AXIsProcessTrusted() {
-            if let selectedText = await SelectedTextService.fetchSelectedText(), !selectedText.isEmpty {
-                selectedTextContext = "\n\n<CURRENTLY_SELECTED_TEXT>\n\(selectedText)\n</CURRENTLY_SELECTED_TEXT>"
+        // Selected text — read property first; fall back to on-demand fetch if HUD
+        // coordinator never ran (defensive — keeps upstream behaviour as a safety net).
+        let selectedTextContext: String = await {
+            guard useSelectedTextContext else { return "" }
+            guard AXIsProcessTrusted() else { return "" }
+            let captured: String?
+            if let cached = lastCapturedSelectedText {
+                captured = cached
             } else {
-                selectedTextContext = ""
+                captured = await SelectedTextService.fetchSelectedText()
             }
-        } else {
-            selectedTextContext = ""
-        }
+            guard let text = captured, !text.isEmpty else { return "" }
+            return "\n\n<CURRENTLY_SELECTED_TEXT>\n\(text)\n</CURRENTLY_SELECTED_TEXT>"
+        }()
 
         let clipboardContext = if useClipboardContext,
                               let clipboardText = lastCapturedClipboard,
@@ -193,9 +197,30 @@ class AIEnhancementService: ObservableObject {
             ""
         }
 
-        let customVocabulary = customVocabularyService.getCustomVocabulary(from: modelContext)
+        // Custom vocabulary — property first, fall back to on-demand
+        let customVocabulary: String = {
+            guard useCustomVocabularyContext else { return "" }
+            if let cached = lastCapturedVocabulary { return cached }
+            return customVocabularyService.getCustomVocabulary(from: modelContext)
+        }()
 
-        let allContextSections = selectedTextContext + clipboardContext + screenCaptureContext
+        // System context (OPA-113) — no user toggle; low-sensitivity metadata always sent when captured
+        let systemContextSection: String = {
+            guard let sys = lastCapturedSystemContext else { return "" }
+            let iso = ISO8601DateFormatter().string(from: sys.timestamp)
+            return """
+
+
+            <SYSTEM_CONTEXT>
+            Current time: \(iso)
+            Timezone: \(sys.timezone)
+            Day of week: \(sys.dayOfWeek)
+            Locale: \(sys.locale)
+            </SYSTEM_CONTEXT>
+            """
+        }()
+
+        let allContextSections = systemContextSection + selectedTextContext + clipboardContext + screenCaptureContext
 
         let customVocabularySection = if !customVocabulary.isEmpty {
             """
