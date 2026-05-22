@@ -44,7 +44,7 @@ class PrivacyHUDWindowManager: ObservableObject {
         let view = PrivacyHUDView(payload: payload)
         let host = NSHostingController(rootView: view)
         let newPanel = PrivacyHUDPanel(contentRect: frame)
-        newPanel.contentView = host.view
+        newPanel.contentViewController = host
         newPanel.orderFrontRegardless()
         self.panel = newPanel
         self.hostingController = host

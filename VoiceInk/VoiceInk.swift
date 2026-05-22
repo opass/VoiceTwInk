@@ -22,6 +22,8 @@ struct VoiceInkApp: App {
     @StateObject private var menuBarManager: MenuBarManager
     @StateObject private var aiService = AIService()
     @StateObject private var enhancementService: AIEnhancementService
+    // Held for lifetime — subscribes to enhancementService publisher directly,
+    // never injected into SwiftUI environment (no views need access).
     @StateObject private var privacyHUDWindowManager: PrivacyHUDWindowManager
     @StateObject private var activeWindowService = ActiveWindowService.shared
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false

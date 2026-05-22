@@ -22,6 +22,7 @@ class PrivacyHUDPanel: NSPanel {
         level = .floating
         hidesOnDeactivate = false
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        // HUD position is computed by PrivacyHUDPositioner — not user-draggable
         isMovable = false
         backgroundColor = .clear
         isOpaque = false
