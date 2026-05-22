@@ -13,6 +13,10 @@ enum EnhancementPrompt {
 class AIEnhancementService: ObservableObject {
     private let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "AIEnhancementService")
 
+    /// Shared formatter for <SYSTEM_CONTEXT> ISO timestamps. `ISO8601DateFormatter`'s
+    /// date-to-string path is thread-safe, so reusing one instance avoids per-call allocation.
+    private static let iso8601Formatter = ISO8601DateFormatter()
+
     @Published var isEnhancementEnabled: Bool {
         didSet {
             UserDefaults.standard.set(isEnhancementEnabled, forKey: "isAIEnhancementEnabled")
@@ -171,6 +175,8 @@ class AIEnhancementService: ObservableObject {
         let selectedTextContext: String = await {
             guard useSelectedTextContext else { return "" }
             guard AXIsProcessTrusted() else { return "" }
+            // `??` would be cleaner but its right-hand autoclosure doesn't support
+            // `await`, so fall back to an explicit if/else.
             let captured: String?
             if let cached = lastCapturedSelectedText {
                 captured = cached
@@ -207,7 +213,7 @@ class AIEnhancementService: ObservableObject {
         // System context (OPA-113) — no user toggle; low-sensitivity metadata always sent when captured
         let systemContextSection: String = {
             guard let sys = lastCapturedSystemContext else { return "" }
-            let iso = ISO8601DateFormatter().string(from: sys.timestamp)
+            let iso = Self.iso8601Formatter.string(from: sys.timestamp)
             return """
 
 
