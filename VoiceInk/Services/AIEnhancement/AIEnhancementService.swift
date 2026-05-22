@@ -92,6 +92,7 @@ class AIEnhancementService: ObservableObject {
     @Published var lastCapturedClipboard: String?
     @Published var lastCapturedSelectedText: String?
     @Published var lastCapturedVocabulary: String?
+    @Published var lastCapturedSystemContext: SystemContextValue?
 
     init(aiService: AIService = AIService(), modelContext: ModelContext) {
         self.aiService = aiService
@@ -444,10 +445,24 @@ class AIEnhancementService: ObservableObject {
         lastCapturedVocabulary = vocab.isEmpty ? nil : vocab
     }
 
+    func captureSystemContext() {
+        let now = Date()
+        let calendar = Calendar.current
+        let weekdayIndex = calendar.component(.weekday, from: now) - 1
+        let weekday = calendar.weekdaySymbols[weekdayIndex]
+        lastCapturedSystemContext = SystemContextValue(
+            timestamp: now,
+            timezone: TimeZone.current.identifier,
+            dayOfWeek: weekday,
+            locale: Locale.current.identifier
+        )
+    }
+
     func clearCapturedContexts() {
         lastCapturedClipboard = nil
         lastCapturedSelectedText = nil
         lastCapturedVocabulary = nil
+        lastCapturedSystemContext = nil
         screenCaptureService.lastCapturedText = nil
     }
 
