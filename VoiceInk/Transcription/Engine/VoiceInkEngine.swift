@@ -31,6 +31,10 @@ class VoiceInkEngine: NSObject, ObservableObject {
 
     let logger = Logger(subsystem: "com.prakashjoshipax.voiceink", category: "VoiceInkEngine")
 
+    private lazy var escapeCancelHandler: EscapeCancelHandler = EscapeCancelHandler { [weak self] in
+        await self?.cancelRecording()
+    }
+
     init(
         modelContext: ModelContext,
         whisperModelManager: WhisperModelManager,
@@ -169,6 +173,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
 
                             self.recordingState = .recording
                             self.logger.notice("toggleRecord: recording started successfully, state=recording")
+                            self.escapeCancelHandler.register()
 
                             await ActiveWindowService.shared.applyConfiguration(powerModeId: powerModeId)
 
@@ -218,7 +223,20 @@ class VoiceInkEngine: NSObject, ObservableObject {
 
                                 if let enhancementService = self.enhancementService {
                                     enhancementService.captureClipboardContext()
+                                    await enhancementService.captureSelectedTextContext()
+                                    enhancementService.captureVocabularyContext()
+                                    enhancementService.captureSystemContext()
                                     await enhancementService.captureScreenContext()
+                                    // Guard against a race: if the user pressed ESC (or otherwise
+                                    // cancelled) while captureScreenContext was awaiting OCR,
+                                    // shouldCancelRecording was set synchronously by
+                                    // requestRecordingCancellation() before any cancel-path await.
+                                    // Skipping assemble here keeps the HUD hidden after cancel
+                                    // instead of letting a stale OCR completion re-publish a
+                                    // payload and force the HUD back on screen.
+                                    if !self.shouldCancelRecording {
+                                        enhancementService.assemblePrivacyPayload()
+                                    }
                                 }
                             }
 
@@ -302,6 +320,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
     // MARK: - Cancellation
 
     func cancelRecording() async {
+        self.escapeCancelHandler.unregister()
         logger.notice("cancelRecording called – state=\(String(describing: self.recordingState), privacy: .public)")
 
         let shouldFinishSessionImmediately: Bool
@@ -325,6 +344,10 @@ class VoiceInkEngine: NSObject, ObservableObject {
         if shouldFinishSessionImmediately {
             await finishRecorderSession()
         }
+
+        // Idempotent; ensures cleanup even when finishRecorderSession was skipped
+        // (the .transcribing / .enhancing branch sets shouldFinishSessionImmediately = false)
+        self.enhancementService?.clearPrivacyPayload()
     }
 
     func resetRecordingSession() async {
@@ -432,7 +455,8 @@ class VoiceInkEngine: NSObject, ObservableObject {
     }
 
     private func finishRecorderSession() async {
-        enhancementService?.clearCapturedContexts()
+        self.escapeCancelHandler.unregister()
+        enhancementService?.clearPrivacyPayload()
         await restorePowerModeIfNeeded()
     }
 

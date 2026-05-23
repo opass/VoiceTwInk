@@ -74,9 +74,8 @@ class MiniRecorderShortcutManager: ObservableObject {
 
         var shortcuts = ShortcutStore.shortcuts(for: ShortcutAction.miniRecorderStoredActions)
 
-        if ShortcutStore.shortcut(for: .cancelRecorder) == nil {
-            shortcuts[.miniRecorderEscape] = .key(keyCode: UInt16(kVK_Escape), modifierFlags: [])
-        }
+        // ESC handling moved to EscapeCancelHandler (CGEventTap-based, handles modifier-held
+        // case that ShortcutMonitor's strict modifier match can't catch). See OPA-111.
 
         for (index, keyCode) in Self.digitKeyCodes.enumerated() {
             shortcuts[.miniRecorderPrompt(index)] = .key(

@@ -58,6 +58,22 @@ struct EnhancementSettingsPanel: View {
                         }
                     }
                     .toggleStyle(.switch)
+
+                    Toggle(isOn: $enhancementService.useSelectedTextContext) {
+                        HStack(spacing: 4) {
+                            Text("Selected Text Context")
+                            InfoTip("Include the text currently selected in any app when enhancing. Requires Accessibility permission.")
+                        }
+                    }
+                    .toggleStyle(.switch)
+
+                    Toggle(isOn: $enhancementService.useCustomVocabularyContext) {
+                        HStack(spacing: 4) {
+                            Text("Custom Vocabulary Context")
+                            InfoTip("Include your custom vocabulary list to help with proper nouns and technical terms.")
+                        }
+                    }
+                    .toggleStyle(.switch)
                 } header: {
                     Text("Context")
                 }
