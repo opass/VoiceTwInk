@@ -7,28 +7,30 @@ struct PrivacyHUDView: View {
     let payload: PrivacyPayload
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            renderField(name: "Selected", icon: "✂️", field: payload.selectedText) { text in
-                truncate(text, max: 200)
-            }
-            renderField(name: "Clipboard", icon: "📋", field: payload.clipboard) { text in
-                truncate(text, max: 200)
-            }
-            renderField(name: "Screen", icon: "🖥", field: payload.screenContext) { val in
-                let prefix = val.appName.isEmpty ? "" : "[\(val.appName)] "
-                return prefix + truncate(val.extractedText, max: 200)
-            }
-            renderField(name: "Vocab", icon: "📚", field: payload.customVocabulary) { text in
-                truncate(text, max: 200)
-            }
-            renderField(name: "Time", icon: "🕐", field: payload.systemContext) { val in
-                "\(val.dayOfWeek) \(formatTime(val.timestamp)) (\(val.timezone))"
-            }
+        ScrollView(.vertical, showsIndicators: true) {
+            VStack(alignment: .leading, spacing: 6) {
+                renderField(name: "Selected", icon: "✂️", field: payload.selectedText) { text in
+                    text
+                }
+                renderField(name: "Clipboard", icon: "📋", field: payload.clipboard) { text in
+                    text
+                }
+                renderField(name: "Screen", icon: "🖥", field: payload.screenContext) { val in
+                    let prefix = val.appName.isEmpty ? "" : "[\(val.appName)] "
+                    return prefix + val.extractedText
+                }
+                renderField(name: "Vocab", icon: "📚", field: payload.customVocabulary) { text in
+                    text
+                }
+                renderField(name: "Time", icon: "🕐", field: payload.systemContext) { val in
+                    "\(val.dayOfWeek) \(formatTime(val.timestamp)) (\(val.timezone))"
+                }
 
-            Divider().opacity(0.4)
-            destinationFooter
+                Divider().opacity(0.4)
+                destinationFooter
+            }
+            .padding(10)
         }
-        .padding(10)
         .background(backgroundColor)
         .cornerRadius(10)
         .shadow(radius: 4)
@@ -61,13 +63,14 @@ struct PrivacyHUDView: View {
                 Text("omitted (timing)").font(.system(size: 11)).italic().opacity(0.5)
             }
         case .present(let value):
-            HStack(spacing: 6) {
+            HStack(alignment: .top, spacing: 6) {
                 Text(icon).font(.system(size: 12))
                 Text(name).font(.system(size: 11, weight: .semibold))
                 Text(valueFormatter(value))
                     .font(.system(size: 11, design: .monospaced))
                     .opacity(0.8)
-                    .lineLimit(4)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -108,11 +111,6 @@ struct PrivacyHUDView: View {
     }
 
     // MARK: - Helpers
-
-    private func truncate(_ s: String, max: Int) -> String {
-        if s.count <= max { return s }
-        return String(s.prefix(max)) + "..."
-    }
 
     private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
