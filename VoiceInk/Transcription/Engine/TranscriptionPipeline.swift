@@ -226,9 +226,10 @@ class TranscriptionPipeline {
             let pastedText = textToPaste + (appendSpace ? " " : "")
             _ = await CursorPaster.startPasteAtCursor(pastedText).value
             let autoSendKey = PowerModeManager.shared.currentActiveConfiguration?.autoSendKey
+            let simulateTyping = UserDefaults.standard.bool(forKey: "simulateTypingInsteadOfPaste")
             SoundManager.shared.playStopSound()
             await restorePromptDetectionSettingsAndDismiss {
-                if let autoSendKey, autoSendKey.isEnabled {
+                if let autoSendKey, autoSendKey.isEnabled, !simulateTyping {
                     Task { @MainActor in
                         try? await Task.sleep(nanoseconds: 500_000_000)
                         CursorPaster.performAutoSend(autoSendKey)
