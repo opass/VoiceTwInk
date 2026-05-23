@@ -43,7 +43,7 @@ class PrivacyHUDWindowManager: ObservableObject {
 
         let view = PrivacyHUDView(payload: payload)
         let host = NSHostingController(rootView: view)
-        let initialSize = NSSize(width: 380, height: 100)
+        let initialSize = NSSize(width: 700, height: 100)
         let initialFrame = PrivacyHUDPositioner.calculateFrame(hudSize: initialSize)
         let newPanel = PrivacyHUDPanel(contentRect: initialFrame)
         newPanel.contentViewController = host
@@ -65,7 +65,7 @@ class PrivacyHUDWindowManager: ObservableObject {
         let fitting = host.view.fittingSize
         let screenHeight = NSScreen.main?.visibleFrame.height ?? 800
         let maxHeight = screenHeight * 0.7
-        let width: CGFloat = 380
+        let width: CGFloat = 700
         let height = min(max(fitting.height, 60), maxHeight)
         return NSSize(width: width, height: height)
     }

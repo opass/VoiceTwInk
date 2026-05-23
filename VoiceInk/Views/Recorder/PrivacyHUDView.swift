@@ -34,7 +34,7 @@ struct PrivacyHUDView: View {
         .background(backgroundColor)
         .cornerRadius(10)
         .shadow(radius: 4)
-        .frame(maxWidth: 380)
+        .frame(maxWidth: 700)
     }
 
     // MARK: - Field row
