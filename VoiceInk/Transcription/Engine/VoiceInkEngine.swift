@@ -206,6 +206,7 @@ class VoiceInkEngine: NSObject, ObservableObject {
 
                             Task { @MainActor [weak self] in
                                 guard let self else { return }
+                                let captureStartID = self.activeRecordingStartID
 
                                 if let model = self.transcriptionModelManager.currentTranscriptionModel,
                                    model.provider == .whisper {
@@ -227,14 +228,15 @@ class VoiceInkEngine: NSObject, ObservableObject {
                                     enhancementService.captureVocabularyContext()
                                     enhancementService.captureSystemContext()
                                     await enhancementService.captureScreenContext()
-                                    // Guard against a race: if the user pressed ESC (or otherwise
-                                    // cancelled) while captureScreenContext was awaiting OCR,
-                                    // shouldCancelRecording was set synchronously by
-                                    // requestRecordingCancellation() before any cancel-path await.
-                                    // Skipping assemble here keeps the HUD hidden after cancel
-                                    // instead of letting a stale OCR completion re-publish a
-                                    // payload and force the HUD back on screen.
-                                    if !self.shouldCancelRecording {
+                                    // Guard against a race: if the recording session ended (cancel,
+                                    // success, or error) while captureScreenContext was awaiting OCR,
+                                    // activeRecordingStartID was cleared to nil. Skipping assemble
+                                    // here keeps the HUD from re-publishing a stale payload after
+                                    // finishRecorderSession already cleared it (OPA-116). The
+                                    // shouldCancelRecording check is technically redundant given the
+                                    // ID guard, but kept for defence-in-depth.
+                                    if self.activeRecordingStartID == captureStartID,
+                                       !self.shouldCancelRecording {
                                         enhancementService.assemblePrivacyPayload()
                                     }
                                 }
