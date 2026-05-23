@@ -45,6 +45,10 @@ class CursorPaster {
 
     @MainActor
     private static func performPasteSession(_ text: String) async -> PasteResult {
+        if UserDefaults.standard.bool(forKey: "simulateTypingInsteadOfPaste") {
+            return await typeAtCursor(text)
+        }
+
         let pasteboard = NSPasteboard.general
         let shouldRestoreClipboard = UserDefaults.standard.bool(forKey: "restoreClipboardAfterPaste")
         let savedContents = shouldRestoreClipboard ? snapshotClipboard(from: pasteboard) : []
@@ -207,6 +211,44 @@ class CursorPaster {
         guard seconds > 0 else { return }
         let nanoseconds = UInt64(seconds * 1_000_000_000)
         try? await Task.sleep(nanoseconds: nanoseconds)
+    }
+
+    // MARK: - Simulated typing
+
+    private static let typingInterCharDelay: TimeInterval = 0.005
+
+    @MainActor
+    private static func typeAtCursor(_ text: String) async -> PasteResult {
+        guard AXIsProcessTrusted() else {
+            logger.error("Accessibility permission required for simulated typing")
+            return .commandNotPosted
+        }
+
+        let source = CGEventSource(stateID: .privateState)
+        for char in text {
+            let str = String(char)
+            let utf16 = Array(str.utf16)
+
+            guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: true),
+                  let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false) else {
+                logger.error("Failed to create typing key events for char: \(str, privacy: .public)")
+                continue
+            }
+
+            utf16.withUnsafeBufferPointer { buf in
+                if let base = buf.baseAddress {
+                    keyDown.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: base)
+                    keyUp.keyboardSetUnicodeString(stringLength: utf16.count, unicodeString: base)
+                }
+            }
+
+            keyDown.post(tap: .cghidEventTap)
+            keyUp.post(tap: .cghidEventTap)
+
+            await wait(typingInterCharDelay)
+        }
+
+        return .commandPosted
     }
 
     // MARK: - Auto Send Keys

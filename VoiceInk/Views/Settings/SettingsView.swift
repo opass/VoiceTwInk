@@ -21,6 +21,7 @@ struct SettingsView: View {
     @AppStorage("restoreClipboardAfterPaste") private var restoreClipboardAfterPaste = true
     @AppStorage("clipboardRestoreDelay") private var clipboardRestoreDelay = 2.0
     @AppStorage("useAppleScriptPaste") private var useAppleScriptPaste = false
+    @AppStorage("simulateTypingInsteadOfPaste") private var simulateTypingInsteadOfPaste = false
     @State private var showResetOnboardingAlert = false
     @State private var hasCancelRecordingShortcut = ShortcutStore.shortcut(for: .cancelRecorder) != nil
     @State private var cancelRecordingShortcutRecorderResetID = 0
@@ -199,6 +200,14 @@ struct SettingsView: View {
                     HStack(spacing: 4) {
                         Text("Use AppleScript Paste")
                         InfoTip("Enable this if pasting doesn't work with your keyboard layout (e.g. Neo2). Uses AppleScript instead of simulated key events.")
+                    }
+                }
+
+                // Simulate Typing
+                Toggle(isOn: $simulateTypingInsteadOfPaste) {
+                    HStack(spacing: 4) {
+                        Text("Simulate Typing Instead of Paste")
+                        InfoTip("Types each character as a simulated key event instead of pasting. Slower for long text, but avoids paste-collapse in apps like Claude Code CLI. Bypasses IME via direct Unicode injection. Note: Auto Send is disabled in this mode — press Enter manually after reviewing.")
                     }
                 }
             }
