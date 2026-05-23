@@ -227,7 +227,16 @@ class VoiceInkEngine: NSObject, ObservableObject {
                                     enhancementService.captureVocabularyContext()
                                     enhancementService.captureSystemContext()
                                     await enhancementService.captureScreenContext()
-                                    enhancementService.assemblePrivacyPayload()
+                                    // Guard against a race: if the user pressed ESC (or otherwise
+                                    // cancelled) while captureScreenContext was awaiting OCR,
+                                    // shouldCancelRecording was set synchronously by
+                                    // requestRecordingCancellation() before any cancel-path await.
+                                    // Skipping assemble here keeps the HUD hidden after cancel
+                                    // instead of letting a stale OCR completion re-publish a
+                                    // payload and force the HUD back on screen.
+                                    if !self.shouldCancelRecording {
+                                        enhancementService.assemblePrivacyPayload()
+                                    }
                                 }
                             }
 
