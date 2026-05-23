@@ -529,7 +529,7 @@ class AIEnhancementService: ObservableObject {
             // lastCapturedText, screenField would silently stay .pending — keep this coupling
             // in mind when refactoring ScreenCaptureService.
             guard let raw = screenCaptureService.lastCapturedText, !raw.isEmpty else { return .pending }
-            return .present(ScreenContextValue(windowTitle: "", appName: "", extractedText: raw))
+            return .present(parseScreenCaptureRaw(raw))
         }()
 
         let vocabField: ContextField<String> = {
@@ -588,6 +588,43 @@ class AIEnhancementService: ObservableObject {
         }
         let rawURL = provider.baseURL
         return URL(string: rawURL) ?? URL(string: "http://localhost")!
+    }
+
+    /// Parses the string format produced by ScreenCaptureService.captureAndExtractText():
+    ///   "Active Window: <title>\nApplication: <app>\n\nWindow Content:\n<ocr>"
+    /// Returns the structured ScreenContextValue with windowTitle / appName / extractedText
+    /// split apart. Falls back to dumping the whole raw into extractedText if the format
+    /// doesn't match (defensive).
+    private func parseScreenCaptureRaw(_ raw: String) -> ScreenContextValue {
+        let lines = raw.components(separatedBy: "\n")
+        var windowTitle = ""
+        var appName = ""
+        var contentStartIndex: Int? = nil
+
+        for (i, line) in lines.enumerated() {
+            if line.hasPrefix("Active Window: ") {
+                windowTitle = String(line.dropFirst("Active Window: ".count))
+            } else if line.hasPrefix("Application: ") {
+                appName = String(line.dropFirst("Application: ".count))
+            } else if line == "Window Content:" {
+                contentStartIndex = i + 1
+                break
+            }
+        }
+
+        let extractedText: String
+        if let start = contentStartIndex, start < lines.count {
+            extractedText = lines[start..<lines.count].joined(separator: "\n")
+        } else {
+            // Unexpected format — keep raw so we don't lose information
+            extractedText = raw
+        }
+
+        return ScreenContextValue(
+            windowTitle: windowTitle,
+            appName: appName,
+            extractedText: extractedText
+        )
     }
 
     func clearPrivacyPayload() {

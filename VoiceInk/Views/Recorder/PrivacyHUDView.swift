@@ -9,16 +9,17 @@ struct PrivacyHUDView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             renderField(name: "Selected", icon: "✂️", field: payload.selectedText) { text in
-                truncate(text, max: 50)
+                truncate(text, max: 200)
             }
             renderField(name: "Clipboard", icon: "📋", field: payload.clipboard) { text in
-                truncate(text, max: 50)
+                truncate(text, max: 200)
             }
             renderField(name: "Screen", icon: "🖥", field: payload.screenContext) { val in
-                truncate(val.extractedText, max: 50)
+                let prefix = val.appName.isEmpty ? "" : "[\(val.appName)] "
+                return prefix + truncate(val.extractedText, max: 200)
             }
             renderField(name: "Vocab", icon: "📚", field: payload.customVocabulary) { text in
-                truncate(text, max: 50)
+                truncate(text, max: 200)
             }
             renderField(name: "Time", icon: "🕐", field: payload.systemContext) { val in
                 "\(val.dayOfWeek) \(formatTime(val.timestamp)) (\(val.timezone))"
@@ -31,7 +32,7 @@ struct PrivacyHUDView: View {
         .background(backgroundColor)
         .cornerRadius(10)
         .shadow(radius: 4)
-        .frame(maxWidth: 280)
+        .frame(maxWidth: 380)
     }
 
     // MARK: - Field row
@@ -66,7 +67,7 @@ struct PrivacyHUDView: View {
                 Text(valueFormatter(value))
                     .font(.system(size: 11, design: .monospaced))
                     .opacity(0.8)
-                    .lineLimit(1)
+                    .lineLimit(4)
             }
         }
     }
