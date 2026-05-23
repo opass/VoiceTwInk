@@ -11,6 +11,7 @@ enum AppDefaults {
             "restoreClipboardAfterPaste": true,
             "clipboardRestoreDelay": 2.0,
             "useAppleScriptPaste": false,
+            "simulateTypingInsteadOfPaste": false,
 
             // Audio & Media
             "isSystemMuteEnabled": true,
