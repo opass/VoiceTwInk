@@ -226,6 +226,24 @@ class CursorPaster {
 
         let source = CGEventSource(stateID: .privateState)
         for char in text {
+            // Newlines must go in as Shift+Return, not as raw \n unicode injection.
+            // Otherwise chat-style inputs (Claude CC, Slack, etc.) treat the Enter
+            // keystroke as a submit and prematurely send mid-transcript paragraphs
+            // (OPA-119).
+            if char == "\n" {
+                guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: true),
+                      let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 0x24, keyDown: false) else {
+                    logger.error("Failed to create Shift+Return key events")
+                    continue
+                }
+                keyDown.flags = .maskShift
+                keyUp.flags = .maskShift
+                keyDown.post(tap: .cghidEventTap)
+                keyUp.post(tap: .cghidEventTap)
+                await wait(typingInterCharDelay)
+                continue
+            }
+
             let str = String(char)
             let utf16 = Array(str.utf16)
 
