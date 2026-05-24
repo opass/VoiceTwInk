@@ -20,6 +20,8 @@ VoiceTwInk 是 [VoiceInk](https://github.com/Beingpax/VoiceInk) 的個人 fork�
 
 ### 1. Privacy HUD — 送出前先看每一個 byte
 
+![Privacy HUD 浮在 macOS Notch recorder 旁邊，顯示即將送雲端 LLM 的 clipboard 內容、screen context、time — 黃底代表雲端 destination](./docs/images/privacy-hud-screenshot.png)
+
 上游的 AI Enhancement 啟用時，會默默把選取文字、剪貼簿內容、Screen OCR 結果、自訂字典等 context 全部塞進送 LLM 的請求 — 只要 Accessibility 權限有給。問題是你完全沒辦法 audit 它**正要**送什麼出去，它就送了。
 
 VoiceTwInk 加了一個浮動 HUD，錄音時跟在 recorder 旁邊、即時顯示每一個即將離開機器的 context 欄位 — 還有視覺標記（綠 / 黃）區分本地 vs 雲端目的地。錄音中按 ESC 在任何資料送出前全部取消。新加的 global toggle 讓你完全 opt out 選取文字 / 自訂字典的夾帶。

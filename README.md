@@ -20,6 +20,8 @@ VoiceTwInk is a personal fork of [VoiceInk](https://github.com/Beingpax/VoiceInk
 
 ### 1. Privacy HUD — see every byte before it leaves
 
+![Privacy HUD floating beside the macOS Notch recorder, showing the clipboard contents, screen context, and current time about to be sent to the cloud LLM — yellow background marks the cloud destination](./docs/images/privacy-hud-screenshot.png)
+
 Upstream's AI Enhancement silently bundles selected text, clipboard, screen-OCR output, and custom vocabulary into every LLM request when Accessibility permission is granted. You can't audit what's about to be sent — it just goes.
 
 VoiceTwInk adds a floating HUD that appears alongside the recorder during dictation and shows every context field about to leave the box, with a visual marker (green / yellow) for local-vs-cloud destination. Press ESC mid-recording to cancel everything before any data is sent. New global toggles let you opt out of selected-text and custom-vocabulary inclusion entirely.
