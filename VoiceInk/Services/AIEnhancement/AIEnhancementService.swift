@@ -657,28 +657,35 @@ class AIEnhancementService: ObservableObject {
         selectedPromptId = prompt.id
     }
 
+    /// Upsert predefined prompts by UUID (preserving user state like triggerWords/isActive),
+    /// then reorder so predefined prompts appear in source order, with user-created prompts
+    /// appended after. Idempotent: safe to run on every launch.
     private func initializePredefinedPrompts() {
         let predefinedTemplates = PredefinedPrompts.createDefaultPrompts()
+        let predefinedUUIDs = Set(predefinedTemplates.map { $0.id })
 
+        var upserted: [UUID: CustomPrompt] = [:]
         for template in predefinedTemplates {
-            if let existingIndex = customPrompts.firstIndex(where: { $0.id == template.id }) {
-                var updatedPrompt = customPrompts[existingIndex]
-                updatedPrompt = CustomPrompt(
-                    id: updatedPrompt.id,
+            if let existing = customPrompts.first(where: { $0.id == template.id }) {
+                upserted[template.id] = CustomPrompt(
+                    id: existing.id,
                     title: template.title,
                     promptText: template.promptText,
-                    isActive: updatedPrompt.isActive,
+                    isActive: existing.isActive,
                     icon: template.icon,
                     description: template.description,
                     isPredefined: true,
-                    triggerWords: updatedPrompt.triggerWords,
+                    triggerWords: existing.triggerWords,
                     useSystemInstructions: template.useSystemInstructions
                 )
-                customPrompts[existingIndex] = updatedPrompt
             } else {
-                customPrompts.append(template)
+                upserted[template.id] = template
             }
         }
+
+        let orderedPredefined = predefinedTemplates.compactMap { upserted[$0.id] }
+        let userCreated = customPrompts.filter { !predefinedUUIDs.contains($0.id) }
+        customPrompts = orderedPredefined + userCreated
     }
 }
 
