@@ -323,6 +323,7 @@ The fork is the resolved conclusion of this evaluation. Don't re-litigate.
 | Build method | `make local` only (see Build section) |
 | Personal use | Active daily driver (post first-run config) |
 | Open issues from upstream | https://github.com/Beingpax/VoiceInk/issues |
+| Linear project | [`opass/VoiceTwInk`](https://linear.app/opass/project/voicetwink-9c0b66130532) — team prefix `OPA-`. Work items tracked there; PR descriptions and commit messages cross-reference (e.g., OPA-119). |
 
 ---
 
