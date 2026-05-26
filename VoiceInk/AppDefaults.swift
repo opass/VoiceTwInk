@@ -16,6 +16,9 @@ enum AppDefaults {
             // Output post-processing
             "useTraditionalChineseConversion": true,
 
+            // Privacy HUD UI state
+            "privacyHUDCollapsed": false,
+
             // Audio & Media
             "isSystemMuteEnabled": true,
             "audioResumptionDelay": 0.0,
