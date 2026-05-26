@@ -60,7 +60,7 @@ class NotchRecorderPanel: KeyablePanel {
             return 180
         }()
 
-        let maxSideExpansion: CGFloat = 110
+        let maxSideExpansion: CGFloat = 190
         let sideMargin: CGFloat = 10
         let totalWidth = notchWidth + (maxSideExpansion + sideMargin) * 2
 

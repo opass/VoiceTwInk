@@ -1,12 +1,46 @@
 import SwiftUI
 
+extension Notification.Name {
+    static let privacyHUDCollapseDidChange = Notification.Name("PrivacyHUDCollapseDidChange")
+}
+
 /// Visual rendering of the PrivacyPayload. Pure presentation — no business logic.
 /// Each ContextField is rendered as a single row; .disabled and .empty cases are
 /// not rendered at all so the HUD shrinks naturally when fields are absent.
 struct PrivacyHUDView: View {
     let payload: PrivacyPayload
 
+    @AppStorage("privacyHUDCollapsed") private var isCollapsed: Bool = false
+
     var body: some View {
+        // Single permanent toggle button at the top of the HUD, anchored below
+        // the notch by PrivacyHUDPositioner. Fields card renders only in expanded
+        // state. Same screen position for the toggle in both states — only the
+        // icon (chevron.up vs chevron.down) and the visibility of the fields card
+        // differ.
+        VStack(spacing: isCollapsed ? 0 : 6) {
+            toggleButton
+            if !isCollapsed {
+                fieldsCard
+            }
+        }
+    }
+
+    private var toggleButton: some View {
+        Button(action: toggleCollapsed) {
+            Image(systemName: isCollapsed ? "chevron.down" : "chevron.up")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.black.opacity(0.65))
+                .frame(width: 30, height: 30)
+                .background(backgroundColor)
+                .clipShape(Circle())
+                .shadow(radius: 4)
+        }
+        .buttonStyle(.plain)
+        .help(isCollapsed ? "Expand Privacy HUD" : "Collapse Privacy HUD")
+    }
+
+    private var fieldsCard: some View {
         ScrollView(.vertical, showsIndicators: true) {
             VStack(alignment: .leading, spacing: 6) {
                 renderField(name: "Selected", icon: "✂️", field: payload.selectedText) { text in
@@ -35,6 +69,13 @@ struct PrivacyHUDView: View {
         .cornerRadius(10)
         .shadow(radius: 4)
         .frame(maxWidth: 700)
+    }
+
+    private func toggleCollapsed() {
+        isCollapsed.toggle()
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .privacyHUDCollapseDidChange, object: nil)
+        }
     }
 
     // MARK: - Field row

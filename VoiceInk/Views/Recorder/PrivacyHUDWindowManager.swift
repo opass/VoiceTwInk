@@ -28,12 +28,25 @@ class PrivacyHUDWindowManager: ObservableObject {
                 }
             }
             .store(in: &cancellables)
+
+        NotificationCenter.default.publisher(for: .privacyHUDCollapseDidChange)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.handleCollapseToggle()
+            }
+            .store(in: &cancellables)
+    }
+
+    private func handleCollapseToggle() {
+        guard let payload = enhancementService.currentPrivacyPayload else { return }
+        showOrUpdate(with: payload)
     }
 
     private func showOrUpdate(with payload: PrivacyPayload) {
         if let panel, let hostingController {
             hostingController.rootView = PrivacyHUDView(payload: payload)
             // Re-measure and re-position after content update
+            hostingController.view.layoutSubtreeIfNeeded()
             let size = measuredSize(host: hostingController)
             let frame = PrivacyHUDPositioner.calculateFrame(hudSize: size)
             panel.setFrame(frame, display: true)
@@ -65,8 +78,10 @@ class PrivacyHUDWindowManager: ObservableObject {
         let fitting = host.view.fittingSize
         let screenHeight = NSScreen.main?.visibleFrame.height ?? 800
         let maxHeight = screenHeight * 0.7
-        let width: CGFloat = 700
-        let height = min(max(fitting.height, 60), maxHeight)
+        let isCollapsed = UserDefaults.standard.bool(forKey: "privacyHUDCollapsed")
+        let width = isCollapsed ? max(fitting.width, 30) : 700
+        let minHeight: CGFloat = isCollapsed ? 30 : 60
+        let height = min(max(fitting.height, minHeight), maxHeight)
         return NSSize(width: width, height: height)
     }
 

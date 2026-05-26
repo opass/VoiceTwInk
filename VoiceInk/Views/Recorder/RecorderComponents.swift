@@ -159,18 +159,27 @@ struct RecorderPromptButton: View {
     }
 
     var body: some View {
-        RecorderToggleButton(
-            isEnabled: enhancementService.isEnhancementEnabled,
-            icon: enhancementService.activePrompt?.icon ?? enhancementService.allPrompts.first(where: { $0.id == PredefinedPrompts.defaultPromptId })?.icon ?? "checkmark.seal.fill",
-            disabled: false
-        ) {
-            if enhancementService.isEnhancementEnabled {
-                activePopover = activePopover == .enhancement ? .none : .enhancement
-            } else {
-                enhancementService.isEnhancementEnabled = true
+        HStack(spacing: 6) {
+            RecorderToggleButton(
+                isEnabled: enhancementService.isEnhancementEnabled,
+                icon: activePromptIcon,
+                disabled: false
+            ) {
+                if enhancementService.isEnhancementEnabled {
+                    activePopover = activePopover == .enhancement ? .none : .enhancement
+                } else {
+                    enhancementService.isEnhancementEnabled = true
+                }
             }
+            .frame(width: buttonSize)
+
+            Text(activePromptTitle)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(.white.opacity(0.85))
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(maxWidth: 110, alignment: .leading)
         }
-        .frame(width: buttonSize)
         .padding(padding)
         .onHover {
             isHoveringButton = $0
@@ -184,6 +193,26 @@ struct RecorderPromptButton: View {
                     syncPopoverVisibility()
                 }
         }
+    }
+
+    private var activePromptTitle: String {
+        if let active = enhancementService.activePrompt {
+            return active.title
+        }
+        if let fallback = enhancementService.allPrompts.first(where: { $0.id == PredefinedPrompts.defaultPromptId }) {
+            return fallback.title
+        }
+        return "Default"
+    }
+
+    private var activePromptIcon: PromptIcon {
+        if let active = enhancementService.activePrompt {
+            return active.icon
+        }
+        if let fallback = enhancementService.allPrompts.first(where: { $0.id == PredefinedPrompts.defaultPromptId }) {
+            return fallback.icon
+        }
+        return "checkmark.seal.fill"
     }
 
     private func syncPopoverVisibility() {

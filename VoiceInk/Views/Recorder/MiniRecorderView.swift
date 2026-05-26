@@ -12,8 +12,8 @@ struct MiniRecorderView<S: RecorderStateProvider & ObservableObject>: View {
     // MARK: - Layout Constants
 
     private let controlBarHeight: CGFloat = 40
-    private let compactWidth: CGFloat = 184
-    private let expandedWidth: CGFloat = 300
+    private let compactWidth: CGFloat = 280
+    private let expandedWidth: CGFloat = 360
     private let compactCornerRadius: CGFloat = 20
     private let expandedCornerRadius: CGFloat = 14
 
