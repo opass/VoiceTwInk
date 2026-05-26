@@ -22,6 +22,7 @@ struct SettingsView: View {
     @AppStorage("clipboardRestoreDelay") private var clipboardRestoreDelay = 2.0
     @AppStorage("useAppleScriptPaste") private var useAppleScriptPaste = false
     @AppStorage("simulateTypingInsteadOfPaste") private var simulateTypingInsteadOfPaste = false
+    @AppStorage("useTraditionalChineseConversion") private var useTraditionalChineseConversion = true
     @State private var showResetOnboardingAlert = false
     @State private var hasCancelRecordingShortcut = ShortcutStore.shortcut(for: .cancelRecorder) != nil
     @State private var cancelRecordingShortcutRecorderResetID = 0
@@ -208,6 +209,14 @@ struct SettingsView: View {
                     HStack(spacing: 4) {
                         Text("Simulate Typing Instead of Paste")
                         InfoTip("Types each character as a simulated key event instead of pasting. Slower for long text, but avoids paste-collapse in apps like Claude Code CLI. Bypasses IME via direct Unicode injection. Note: Auto Send is disabled in this mode — press Enter manually after reviewing.")
+                    }
+                }
+
+                // Traditional Chinese conversion
+                Toggle(isOn: $useTraditionalChineseConversion) {
+                    HStack(spacing: 4) {
+                        Text("Convert Simplified Chinese to Traditional (Taiwan)")
+                        InfoTip("Runs OpenCC s2twp on the final transcript before paste/history. Catches simplified characters that the LLM language rule sometimes misses on short utterances. English content is unchanged. Toggle off if you want to preserve simplified Chinese input verbatim (e.g., quoting a mainland source).")
                     }
                 }
             }

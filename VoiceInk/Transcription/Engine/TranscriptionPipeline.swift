@@ -116,11 +116,12 @@ class TranscriptionPipeline {
 
             let actualDuration = await AudioFileMetadata.duration(for: audioURL)
 
-            transcription.text = cleanedText
+            let convertedText = TraditionalChineseConverter.shared.convert(cleanedText)
+            transcription.text = convertedText
             transcription.duration = actualDuration
             transcription.transcriptionModelName = model.displayName
             transcription.transcriptionDuration = transcriptionDuration
-            finalPastedText = cleanedText
+            finalPastedText = convertedText
 
             if let enhancementService, enhancementService.isConfigured {
                 let detectionResult = promptDetectionService.analyzeText(text, with: enhancementService)
@@ -144,13 +145,14 @@ class TranscriptionPipeline {
 
                 do {
                     let (enhancedText, enhancementDuration, promptName) = try await enhancementService.enhance(textForAI)
-                    transcription.enhancedText = enhancedText
+                    let convertedEnhanced = TraditionalChineseConverter.shared.convert(enhancedText)
+                    transcription.enhancedText = convertedEnhanced
                     transcription.aiEnhancementModelName = enhancementService.getAIService()?.currentModel
                     transcription.promptName = promptName
                     transcription.enhancementDuration = enhancementDuration
                     transcription.aiRequestSystemMessage = enhancementService.lastSystemMessageSent
                     transcription.aiRequestUserMessage = enhancementService.lastUserMessageSent
-                    finalPastedText = enhancedText
+                    finalPastedText = convertedEnhanced
                 } catch {
                     let errorDescription = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
                     transcription.enhancedText = "Enhancement failed: \(errorDescription)"
