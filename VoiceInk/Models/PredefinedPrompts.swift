@@ -22,6 +22,15 @@ enum PredefinedPrompts {
     // resolve. Verbatim IS the new Default (reuses the same UUID).
     static let defaultPromptId = verbatimPromptId
 
+    /// Dummy slot UUIDs. Migration treats these specially: once the user edits
+    /// a dummy's promptText/title/icon via Settings, those edits are preserved
+    /// across relaunches (don't get overwritten by the seed template). Only
+    /// position in the slot list is enforced by the reorder step.
+    static let dummyPromptIds: Set<UUID> = [
+        dummySlot3Id, dummySlot4Id, dummySlot5Id,
+        dummySlot6Id, dummySlot7Id, dummySlot8Id, dummySlot9Id
+    ]
+
     static var all: [CustomPrompt] {
         createDefaultPrompts()
     }
