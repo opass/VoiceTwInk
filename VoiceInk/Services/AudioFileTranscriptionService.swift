@@ -83,7 +83,7 @@ class AudioTranscriptionService: ObservableObject {
             let permanentURLString = permanentURL.absoluteString
 
             // Apply prompt detection for trigger words
-            let originalText = cleanedText
+            let originalText = TraditionalChineseConverter.shared.convert(cleanedText)
             var promptDetectionResult: PromptDetectionService.PromptDetectionResult? = nil
 
             if let enhancementService = enhancementService, enhancementService.isConfigured {
@@ -99,10 +99,11 @@ class AudioTranscriptionService: ObservableObject {
                 do {
                     let textForAI = promptDetectionResult?.processedText ?? text
                     let (enhancedText, enhancementDuration, promptName) = try await enhancementService.enhance(textForAI)
+                    let convertedEnhanced = TraditionalChineseConverter.shared.convert(enhancedText)
                     let newTranscription = Transcription(
                         text: originalText,
                         duration: duration,
-                        enhancedText: enhancedText,
+                        enhancedText: convertedEnhanced,
                         audioFileURL: permanentURLString,
                         transcriptionModelName: model.displayName,
                         aiEnhancementModelName: enhancementService.getAIService()?.currentModel,

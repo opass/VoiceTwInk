@@ -13,6 +13,9 @@ enum AppDefaults {
             "useAppleScriptPaste": false,
             "simulateTypingInsteadOfPaste": false,
 
+            // Output post-processing
+            "useTraditionalChineseConversion": true,
+
             // Audio & Media
             "isSystemMuteEnabled": true,
             "audioResumptionDelay": 0.0,

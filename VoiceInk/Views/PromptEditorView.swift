@@ -31,7 +31,9 @@ struct PromptEditorView: View {
     
     private var isEditingPredefinedPrompt: Bool {
         if case .edit(let prompt) = mode {
-            return prompt.isPredefined
+            // Dummy slots are predefined for ordering/export purposes but the user
+            // is meant to customize them — fall through to the full editor.
+            return prompt.isPredefined && !PredefinedPrompts.dummyPromptIds.contains(prompt.id)
         }
         return false
     }
@@ -255,13 +257,16 @@ struct PromptEditorView: View {
                 useSystemInstructions: useSystemInstructions
             )
         case .edit(let prompt):
+            // Dummy slots fall through to the full editor (see isEditingPredefinedPrompt);
+            // their saved fields come from state, not from the original prompt.
+            let isReadOnly = prompt.isPredefined && !PredefinedPrompts.dummyPromptIds.contains(prompt.id)
             let updatedPrompt = CustomPrompt(
                 id: prompt.id,
-                title: prompt.isPredefined ? prompt.title : title,
-                promptText: prompt.isPredefined ? prompt.promptText : promptText,
+                title: isReadOnly ? prompt.title : title,
+                promptText: isReadOnly ? prompt.promptText : promptText,
                 isActive: prompt.isActive,
-                icon: prompt.isPredefined ? prompt.icon : selectedIcon,
-                description: prompt.isPredefined ? prompt.description : (description.isEmpty ? nil : description),
+                icon: isReadOnly ? prompt.icon : selectedIcon,
+                description: isReadOnly ? prompt.description : (description.isEmpty ? nil : description),
                 isPredefined: prompt.isPredefined,
                 triggerWords: triggerWords,
                 useSystemInstructions: useSystemInstructions

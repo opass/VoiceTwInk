@@ -657,28 +657,47 @@ class AIEnhancementService: ObservableObject {
         selectedPromptId = prompt.id
     }
 
+    /// Upsert predefined prompts by UUID, then reorder so predefined prompts appear
+    /// in source order, with user-created prompts appended after. Idempotent.
+    ///
+    /// Two upsert flavors:
+    /// - For non-dummy predefined (Verbatim / Summary / Assistant): overwrite
+    ///   title/promptText/icon/description/useSystemInstructions from the seed
+    ///   template (source-controlled prompt evolution), preserve user's
+    ///   isActive + triggerWords.
+    /// - For dummy slots: preserve the existing entry entirely. Once the user
+    ///   edits a dummy via Settings, those edits survive relaunches. Only
+    ///   the seed values are written if the dummy is missing from customPrompts.
     private func initializePredefinedPrompts() {
         let predefinedTemplates = PredefinedPrompts.createDefaultPrompts()
+        let predefinedUUIDs = Set(predefinedTemplates.map { $0.id })
 
+        var upserted: [UUID: CustomPrompt] = [:]
         for template in predefinedTemplates {
-            if let existingIndex = customPrompts.firstIndex(where: { $0.id == template.id }) {
-                var updatedPrompt = customPrompts[existingIndex]
-                updatedPrompt = CustomPrompt(
-                    id: updatedPrompt.id,
-                    title: template.title,
-                    promptText: template.promptText,
-                    isActive: updatedPrompt.isActive,
-                    icon: template.icon,
-                    description: template.description,
-                    isPredefined: true,
-                    triggerWords: updatedPrompt.triggerWords,
-                    useSystemInstructions: template.useSystemInstructions
-                )
-                customPrompts[existingIndex] = updatedPrompt
+            if let existing = customPrompts.first(where: { $0.id == template.id }) {
+                if PredefinedPrompts.dummyPromptIds.contains(template.id) {
+                    upserted[template.id] = existing
+                } else {
+                    upserted[template.id] = CustomPrompt(
+                        id: existing.id,
+                        title: template.title,
+                        promptText: template.promptText,
+                        isActive: existing.isActive,
+                        icon: template.icon,
+                        description: template.description,
+                        isPredefined: true,
+                        triggerWords: existing.triggerWords,
+                        useSystemInstructions: template.useSystemInstructions
+                    )
+                }
             } else {
-                customPrompts.append(template)
+                upserted[template.id] = template
             }
         }
+
+        let orderedPredefined = predefinedTemplates.compactMap { upserted[$0.id] }
+        let userCreated = customPrompts.filter { !predefinedUUIDs.contains($0.id) }
+        customPrompts = orderedPredefined + userCreated
     }
 }
 
